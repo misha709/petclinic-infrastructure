@@ -17,3 +17,8 @@ output "oidc_provider_arn" {
   value       = aws_iam_openid_connect_provider.eks.arn
   description = "ARN of the EKS OIDC provider — pass to modules/iam when creating the IRSA role"
 }
+
+output "cluster_security_group_id" {
+  value       = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+  description = "ID of the security group EKS attaches to both the cluster ENIs and managed node group instances — use as the ingress source for RDS and other internal services"
+}
