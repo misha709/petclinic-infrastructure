@@ -1,11 +1,18 @@
-locals {
-  bucket_suffix = "4becead5"
-}
+module "vpc" {
+  source = "../../modules/vpc"
 
-terraform {
-  backend "s3" {
-    bucket = "petclinic-tf-state-${local.bucket_suffix}"
-    key    = "dev/terraform.tfstate"
-    region = "eu-west-1"
+  vpc_cidr     = "10.0.0.0/16"
+  cluster_name = "petclinic-dev"
+
+  public_subnets = {
+    "subnet1" = { cidr = "10.0.1.0/24", availability_zone = "eu-west-1a" }
+    "subnet2" = { cidr = "10.0.2.0/24", availability_zone = "eu-west-1b" }
   }
+
+  private_subnets = {
+    "subnet1" = { cidr = "10.0.10.0/24", availability_zone = "eu-west-1a" }
+    "subnet2" = { cidr = "10.0.11.0/24", availability_zone = "eu-west-1b" }
+  }
+
+  tags = merge(var.project_tags, { Module = "vpc" })
 }
