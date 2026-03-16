@@ -1,7 +1,7 @@
 variable "project_tags" {
   type = map(string)
   default = {
-    "Project" = "petclinic"
+    "Project"     = "petclinic"
     "Environment" = "dev"
   }
 }
