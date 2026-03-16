@@ -1,0 +1,41 @@
+name: Terraform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        options: [apply, destroy]
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/environments/dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - run: terraform fmt -check
+      - run: terraform init
+      - run: terraform validate
+      - run: terraform plan -out=plan.tfplan
+
+      - name: Apply (manual trigger only)
+        if: github.event.inputs.action == 'apply'
+        run: terraform apply plan.tfplan
+
+      - name: Destroy (manual trigger only)
+        if: github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
