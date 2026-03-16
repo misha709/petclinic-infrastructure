@@ -17,21 +17,22 @@ module "vpc" {
   tags = merge(var.project_tags, { Module = "vpc" })
 }
 
-locals {
-  ecr_services = toset([
-    "petclinic/owners",
-    "petclinic/pets",
-    "petclinic/vets",
-    "petclinic/visits",
-    "petclinic/notifications",
-    "petclinic/gateway",
-  ])
-}
+## Temporary disable
+# locals {
+#   ecr_services = toset([
+#     "petclinic/owners",
+#     "petclinic/pets",
+#     "petclinic/vets",
+#     "petclinic/visits",
+#     "petclinic/notifications",
+#     "petclinic/gateway",
+#   ])
+# }
 
-module "ecr" {
-  for_each = local.ecr_services
-  source   = "../../modules/ecr"
+# module "ecr" {
+#   for_each = local.ecr_services
+#   source   = "../../modules/ecr"
 
-  name = each.value
-  tags = merge(var.project_tags, { Module = "ecr" })
-}
+#   name = each.value
+#   tags = merge(var.project_tags, { Module = "ecr" })
+# }
