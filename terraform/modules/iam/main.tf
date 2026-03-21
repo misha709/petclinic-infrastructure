@@ -74,16 +74,69 @@ resource "aws_iam_role" "irsa" {
   tags = var.tags
 }
 
-# NOTE: Scope these down per-service in production — use inline policies with
-# specific queue ARNs / secret ARNs instead of the broad managed policies below.
-resource "aws_iam_role_policy_attachment" "irsa_sqs" {
-  count      = var.create_irsa_role ? 1 : 0
-  role       = aws_iam_role.irsa[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
-}
+# Inline policy scoped to the exact actions MassTransit requires for SQS/SNS
+# transport plus read access to Secrets Manager for DB credentials.
+# MassTransit creates and manages its own queues and SNS topics on startup,
+# so Create* / Delete* / Tag* actions are intentional.
+resource "aws_iam_role_policy" "irsa_masstransit" {
+  count = var.create_irsa_role ? 1 : 0
 
-resource "aws_iam_role_policy_attachment" "irsa_secrets" {
-  count      = var.create_irsa_role ? 1 : 0
-  role       = aws_iam_role.irsa[0].name
-  policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+  name = "${var.cluster_name}-irsa-masstransit"
+  role = aws_iam_role.irsa[0].name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "SqsAccess"
+        Effect = "Allow"
+        Action = [
+          "sqs:SetQueueAttributes",
+          "sqs:ReceiveMessage",
+          "sqs:CreateQueue",
+          "sqs:DeleteMessage",
+          "sqs:SendMessage",
+          "sqs:GetQueueUrl",
+          "sqs:GetQueueAttributes",
+          "sqs:ChangeMessageVisibility",
+          "sqs:PurgeQueue",
+          "sqs:DeleteQueue",
+          "sqs:TagQueue",
+        ]
+        Resource = "arn:aws:sqs:*:*:*"
+      },
+      {
+        Sid    = "SnsAccess"
+        Effect = "Allow"
+        Action = [
+          "sns:GetTopicAttributes",
+          "sns:ListSubscriptionsByTopic",
+          "sns:GetSubscriptionAttributes",
+          "sns:SetSubscriptionAttributes",
+          "sns:CreateTopic",
+          "sns:Publish",
+          "sns:Subscribe",
+          "sns:DeleteTopic",
+          "sns:Unsubscribe",
+          "sns:TagResource",
+        ]
+        Resource = "arn:aws:sns:*:*:*"
+      },
+      {
+        Sid      = "SnsListAccess"
+        Effect   = "Allow"
+        Action   = ["sns:ListTopics"]
+        Resource = "*"
+      },
+      {
+        Sid    = "SecretsRead"
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret",
+        ]
+        Resource = "*"
+      },
+    ]
+  })
 }
